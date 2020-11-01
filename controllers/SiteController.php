@@ -9,6 +9,7 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\models\News;
 
 class SiteController extends Controller
 {
@@ -61,8 +62,70 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+
+        $request = Yii::$app->request;
+        $mes = $request->get('mes');
+
+        $query = News::find()->orderBy(['ID' => SORT_DESC]);
+        $countQuery = clone $query;
+        $pages = new \yii\data\Pagination(['totalCount' => $countQuery->count()]);
+        $models = $query->offset($pages->offset)
+            ->limit($pages->limit)
+            ->asArray()
+            ->all();
+
+        return $this->render('index', [
+            'news' => $models,
+            'pages' => $pages,
+            'mes' => $mes,
+        ]);
     }
+
+
+    /**
+     * Update News.
+     *
+     * @return string
+     */
+    public function actionNewsupdate()
+    {
+        //Parse News
+        $arNews = \app\components\Parser::CollectList();
+
+        //Update News
+        News::UpdateDBNews($arNews);
+
+        $query = News::find()->orderBy(['ID' => SORT_DESC]);
+        $countQuery = clone $query;
+        $pages = new \yii\data\Pagination(['totalCount' => $countQuery->count()]);
+        $models = $query->offset($pages->offset)
+            ->limit($pages->limit)
+            ->asArray()
+            ->all();
+
+        $this->redirect('/?mes=yes');
+        return $this->render('index', [
+            'news' => $models,
+            'pages' => $pages,
+        ]);
+    }
+
+
+    /**
+     * Login action.
+     *
+     * @return Response|string
+     */
+    public function actionNewsdetail()
+    {
+        $request = Yii::$app->request;
+        $id = $request->get('idnews');
+        $news = News::find()->where(['ID'=>$id])->orderBy(['ID' => SORT_DESC])->asArray()->all();
+        return $this->render('detail',
+            ['news' => $news]
+        );
+    }
+
 
     /**
      * Login action.
